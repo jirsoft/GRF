@@ -1,5 +1,5 @@
 'Graphic library
-CONST VERSION.GRF = "0.03"
+CONST VERSION.GRF = "0.06"
 
 'FUNCTION GRF.info(pg AS INTEGER) AS STRING
   'return MODE, BPP, y-lines, pg address, write address
@@ -23,8 +23,15 @@ CONST VERSION.GRF = "0.03"
   'load some C64 formats to x, y, page
   'returns 0 when NOK
 
+'FUNCTION GRF.getZXinfo(filePath AS STRING) AS STRING
+  'get info for some ZX formats
+
 'FUNCTION GRF.getCMMcolor(n AS INTEGER) AS INTEGER
   'get color from standard CMM (for sprites)
+
+'FUNCTION GRF.loadZX(filePath AS STRING, x AS INTEGER, y AS INTEGER, pg AS INTEGER) AS INTEGER
+  'load some ZX Spectrum formats to x, y, page
+  'returns 0 when NOK
 
 
 FUNCTION GRF.info(pg AS INTEGER) AS STRING
@@ -88,22 +95,22 @@ SUB GRF.saveBMP(filePath AS STRING, xx AS INTEGER, yy AS INTEGER, ww AS INTEGER,
 
   OPEN filePath FOR OUTPUT AS #5
   'HEADER
-  ?#5, "BM";                            'signature
+  ?#5, "BM";                       'signature
   ?#5, BIN2STR$(UINT32, bmpSize);  'file size in bytes
-  ?#5, BIN2STR$(UINT32, 0);             'unused
-  ?#5, BIN2STR$(UINT32, offset);        'file offset to raster data
+  ?#5, BIN2STR$(UINT32, 0);        'unused
+  ?#5, BIN2STR$(UINT32, offset);   'file offset to raster data
 
-  ?#5, BIN2STR$(UINT32, 40);            'size of info header
-  ?#5, BIN2STR$(INT32, ww);             'width
-  ?#5, BIN2STR$(INT32, hh);             'height
-  ?#5, BIN2STR$(UINT16, 1);             'number of planes
-  ?#5, BIN2STR$(UINT16, bpp);           'bpp=1/4/8/16/24/32 (numColors=2/16/256/65K/16M/16M+A)
-  ?#5, BIN2STR$(INT32, compr);          'compression (0=RGB, 1=RLE8, 2=RLE4, 3=BITFIELDS)
-  ?#5, BIN2STR$(INT32, 0);              'compressed size of image
-  ?#5, BIN2STR$(INT32, 0);              'hor. resolution pix/m
-  ?#5, BIN2STR$(INT32, 0);              'ver resolution pix/m
-  ?#5, BIN2STR$(INT32, 0);              'number of actually used colors
-  ?#5, BIN2STR$(INT32, 0);              'number of important colors (0=ALL)
+  ?#5, BIN2STR$(UINT32, 40);       'size of info header
+  ?#5, BIN2STR$(INT32, ww);        'width
+  ?#5, BIN2STR$(INT32, hh);        'height
+  ?#5, BIN2STR$(UINT16, 1);        'number of planes
+  ?#5, BIN2STR$(UINT16, bpp);      'bpp=1/4/8/16/24/32 (numColors=2/16/256/65K/16M/16M+A)
+  ?#5, BIN2STR$(INT32, compr);     'compression (0=RGB, 1=RLE8, 2=RLE4, 3=BITFIELDS)
+  ?#5, BIN2STR$(INT32, 0);         'compressed size of image
+  ?#5, BIN2STR$(INT32, 0);         'hor. resolution pix/m
+  ?#5, BIN2STR$(INT32, 0);         'ver resolution pix/m
+  ?#5, BIN2STR$(INT32, 0);         'number of actually used colors
+  ?#5, BIN2STR$(INT32, 0);         'number of important colors (0=ALL)
 
   IF bpp = 16 THEN
     'RGB565 mode
@@ -194,23 +201,54 @@ FUNCTION GRF.getImgInfo(filePath AS STRING) AS STRING
           hlp = ASC(INPUT$(4, #10))
           SELECT CASE hlp
             CASE 0 'gray
+              vers = "Grayscale"
 
             CASE 2 'RGB
               bpp = 3 * bpp
+              vers = "RGB"
 
             CASE 3 'PALETTE
-
+              vers = "Indexed"
+        
             CASE 4 'GRAY + ALPHA
               bpp = 2 * bpp
+              vers = "Gray/alpha"
 
             CASE 6 'RGB + ALPHA
               bpp = 4 * bpp
+              vers = "RGBA"
+
           END SELECT
-          GRF.getImgInfo = STR$(w) + "," + STR$(h) + "," + STR$(bpp) + "," + STR$(hlp)
+          GRF.getImgInfo = STR$(w) + "," + STR$(h) + "," + STR$(bpp) + "," + vers
 
       CASE ".JPG"
-          
-    END SELECT
+        LOCAL INTEGER block
+        LOCAL STRING x
+        bpp = 24
+        vers = ""
+        DO
+          block = ASC(INPUT$(1, #10)) ' flag for start of block
+          IF block = 255 THEN
+            block = ASC(INPUT$(1, #10)) ' block type
+            IF block = &hC0 THEN
+              x = INPUT$(3, #10)
+              h = STR2BIN(UINT16, INPUT$(2, #10), BIG)
+              w = STR2BIN(UINT16, INPUT$(2, #10), BIG)
+              EXIT DO
+
+            ELSEIF block = &hC2 THEN
+  
+              vers = "Progressive"
+              x = INPUT$(3, #10)
+              h = STR2BIN(UINT16, INPUT$(2, #10), BIG)
+              w = STR2BIN(UINT16, INPUT$(2, #10), BIG)
+              EXIT DO
+            ENDIF
+          ENDIF
+        LOOP
+        GRF.getImgInfo = STR$(w) + "," + STR$(h) + "," + STR$(bpp) + "," + vers
+
+     END SELECT
     CLOSE #10
   END IF
 END FUNCTION
@@ -394,11 +432,14 @@ FUNCTION GRF.loadC64(filePath AS STRING, x AS INTEGER, y AS INTEGER, pg AS INTEG
       col = 8
       FOR yy = 0 TO 199 STEP 8
         FOR xx = 0 TO 319 STEP 8
+          'ss = LGETBYTE(scrRAM(), scr)
           ss = PEEK(VAR scrRAM(), scr)
           INC scr
+          'cc = LGETBYTE(colRAM(), col) AND 15
           cc = PEEK(VAR colRAM(), col) AND 15
           INC col
           FOR yyy = 0 TO 7
+            'bb = LGETBYTE(bitmap(), bmp)
             bb = PEEK(VAR bitmap(), bmp)
             INC bmp
             FOR xxx = 0 TO 3
@@ -538,3 +579,100 @@ FUNCTION GRF.getCMMcolor(n AS INTEGER) AS INTEGER
   END SELECT 
 END FUNCTION
 
+FUNCTION GRF.getZXinfo(filePath AS STRING) AS STRING
+  'get info for some ZX formats
+
+  LOCAL STRING ext = UCASE$(RIGHT$(filePath, 4))
+  DO WHILE INSTR(ext, ".")
+    ext = MID$(ext, 2)
+  LOOP
+  SELECT CASE ext
+    CASE "SCR"
+      GRF.getZXinfo = "256,192,1,Screen Dump"
+
+    CASE "BSC"
+      GRF.getZXinfo = "256,192,1,Border Screen Image"
+
+    CASE ELSE
+      GRF.getZXinfo = ""      
+  END SELECT
+END FUNCTION
+
+FUNCTION GRF.loadZX(filePath AS STRING, x AS INTEGER, y AS INTEGER, pg AS INTEGER) AS INTEGER
+  'load some ZX Spectrum formats to x, y, page
+  'returns 0 when NOK
+
+  LOCAL INTEGER cols(15) = (&h000000, &h0000D7, &hD70000, &hD700D7, &h00D700, &h00D7D7, &hD7D700, &hD7D7D7, &h000000, &h0000FF, &hFF0000, &hFF00FF, &h00FF00, &h00FFFF, &hFFFF00, &hFFFFFF)
+  LOCAL INTEGER bitmap(768), scrRAM(96)
+  LOCAL INTEGER bmp, scr, third, fc, bc, rx, ry
+  LOCAL INTEGER xxx, yyy, xx, yy, bb, ss
+  LOCAL STRING inp
+  GRF.loadZX = 0      
+  cols(0) = RGB(NOTBLACK)
+  cols(8) = cols(0)
+
+  PAGE WRITE pg
+  LOCAL STRING ext = UCASE$(RIGHT$(filePath, 4))
+  DO WHILE INSTR(ext, ".")
+    ext = MID$(ext, 2)
+  LOOP
+  SELECT CASE ext
+    CASE "SCR"
+      OPEN filePath FOR INPUT AS #5
+      LONGSTRING CLEAR bitmap()
+      LONGSTRING CLEAR scrRAM()
+      FOR xxx = 1 TO 32
+        LONGSTRING APPEND bitmap(), INPUT$(192, #5)    
+      NEXT xxx
+      FOR xxx = 1 TO 4
+        LONGSTRING APPEND scrRAM(), INPUT$(192, #5)
+      NEXT xxx
+      CLOSE #5
+      GRF.loadZX = 1
+
+    CASE "BSC"
+      OPEN filePath FOR INPUT AS #5
+      LONGSTRING CLEAR bitmap()
+      LONGSTRING CLEAR scrRAM()
+      FOR xxx = 1 TO 32
+        LONGSTRING APPEND bitmap(), INPUT$(192, #5)    
+      NEXT xxx
+      FOR xxx = 1 TO 4
+        LONGSTRING APPEND scrRAM(), INPUT$(192, #5)
+      NEXT xxx
+      CLOSE #5
+      GRF.loadZX = 1
+
+  END SELECT
+  IF GRF.loadZX THEN
+    bmp = 8
+    scr = 8
+    FOR third = 0 TO 3
+      FOR yy = 0 TO 7
+        FOR yyy = 0 TO 56 STEP 8
+          FOR xx = 0 TO 248 STEP 8
+            bb = PEEK(VAR bitmap(), bmp)
+            INC bmp
+            FOR xxx = 0 TO 7
+              rx = x + xx + xxx
+              ry = y + third * 64 + yy + yyy
+              ss = PEEK(VAR scrRAM(), 8 + 32 * (ry \ 8) + (rx \ 8))
+              fc = ss AND &b111
+              bc = (ss AND &b111000) >> 3
+              IF ss AND &b1000000 THEN
+                INC fc, 8
+                INC bc, 8
+              ENDIF
+              IF bb AND (1<<(7 - xxx)) THEN
+                PIXEL rx, ry, cols(fc)
+              ELSE
+                PIXEL rx, ry, cols(bc)
+              ENDIF
+            NEXT xxx
+          NEXT xx
+        NEXT yyy
+      NEXT yy
+    NEXT third
+  ENDIF
+  PAGE WRITE 0
+END FUNCTION

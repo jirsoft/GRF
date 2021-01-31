@@ -1,4 +1,5 @@
 # GRF
+Graphic library for Colour Maximite 2 computer...
 
 ### v0.10
 Info and loaders for following formats:
@@ -13,6 +14,8 @@ ZX Spectrum: SCR, BSC
 
 
 Also can save BMP in 8- and 16-bit colors.
+
+
 
 
 **FUNCTION GRF.info(pg AS INTEGER) AS STRING**

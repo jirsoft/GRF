@@ -2,12 +2,18 @@
 
 ### v0.10
 Info and loaders for following formats:
+
 General    : JPG, GIF, PNG, BMP
+
 Atari ST   : PI1, PI2, PI3, PC1, PC2, PC3
+
 C64        : DD,HED, KOA, HBM
+
 ZX Spectrum: SCR, BSC
 
+
 Also can save BMP in 8- and 16-bit colors.
+
 
 **FUNCTION GRF.info(pg AS INTEGER) AS STRING**
 * return MODE, BPP, y-lines, pg address, write address

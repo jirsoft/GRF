@@ -1,7 +1,6 @@
 # GRF
 Graphic library for Colour Maximite 2 computer...
 
-### v0.10
 Info and loaders for following formats:
 
 General    : JPG, GIF, PNG, BMP
@@ -60,4 +59,9 @@ Also can save BMP in 8- and 16-bit colors.
 * load some Atari ST formats to x, y, page
 * optional prog will show progress bar
 * returns 0 when NOK
+
+
+## VERSION HISTORY
+### v0.12
+
 

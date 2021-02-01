@@ -16,6 +16,8 @@ Also can save BMP in 8- and 16-bit colors.
 
 
 
+**FUNCTION GRF.getLuma(x AS INTEGER, y AS INTEGER, pg AS INTEGER) AS INTEGER**
+* return luma of pixel(x, y, pg), 0-255
 
 **FUNCTION GRF.info(pg AS INTEGER) AS STRING**
 * return MODE, BPP, y-lines, pg address, write address
@@ -63,5 +65,6 @@ Also can save BMP in 8- and 16-bit colors.
 
 ## VERSION HISTORY
 ### v0.12
-
-
+	added GRF.getLuma(x, y, page)
+	fixed GRF.loadST - wrong colour palette
+  

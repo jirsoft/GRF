@@ -1,5 +1,11 @@
 'Graphic library
-CONST VERSION.GRF = "0.12"
+CONST VERSION.GRF = "0.14"
+
+'FUNCTION GRF.blackWhite(m AS INTEGER, x AS INTEGER, y AS INTEGER, w AS INTEGER, h AS INTEGER, spg AS INTEGER, dpg AS INTEGER) AS INTEGER
+  'convert image on (x, y, w, h) on PAGE spg to grayscale on PAGE dpg (spg can be same as dpg)
+  'm = MODE: 0  threshold (luma = 128 of 255)
+            '1  simple dither
+  'return 0 when NOK
 
 'FUNCTION GRF.getLuma(x AS INTEGER, y AS INTEGER, pg AS INTEGER) AS INTEGER
   'return luminiscence of PIXEL x, y, pg (0-255)
@@ -64,9 +70,11 @@ FUNCTION GRF.info(pg AS INTEGER) AS STRING
   IF pg <= MM.INFO(MAX PAGES) THEN
     pgAdr = MM.INFO(PAGE ADDRESS pg)
   ENDIF
-
-  GRF.info = LEFT$(STR$(m), 1) + "," + MID$(STR$(m), 3) 
-
+  
+  GRF.info = STR$(m)
+  dup = INSTR(GRF.info, ".") 
+  IF dup > 0 THEN MID$(GRF.info, dup, 1) = ","
+  dup = 1
   SELECT CASE m
     CASE 1.12,3.8,3.12,3.16,5 TO 7.99, 12 TO 13.99
       if pg = 0 THEN dup = 2
@@ -1160,5 +1168,77 @@ FUNCTION GRF.getLuma(x AS INTEGER, y AS INTEGER, pg AS INTEGER) AS INTEGER
       ENDIF
     ENDIF
   ENDIF  
+END FUNCTION
+
+FUNCTION GRF.blackWhite(m AS INTEGER, x AS INTEGER, y AS INTEGER, w AS INTEGER, h AS INTEGER, spg AS INTEGER, dpg AS INTEGER, prog AS INTEGER) AS INTEGER
+  'convert image on (x, y, w, h) on PAGE spg to grayscale on PAGE dpg (spg can be same as dpg)
+  'm = MODE: 0  threshold (luma = 128 of 255)
+            '1  simple dither
+  'return 0 when NOK
+
+  GRF.blackWhite = 0
+  IF x >= 0 THEN
+    IF x + w <= MM.HRES THEN
+      IF y >= 0 THEN
+        IF y + h <= MM.VRES THEN
+          LOCAL INTEGER xx, yy, p, r, g, b
+          IF prog THEN LOCAL STRING dialog = TUIwaitingON("CONVERTING IMAGE TO B&W (MODE" + STR$(m) + ")")
+          SELECT CASE m
+            CASE 0
+              FOR yy = y TO y + h - 1
+                IF prog THEN 
+                  PAGE WRITE 0
+                  TUIwaitingProgress(dialog, 100*(yy-y)/h)
+                  PAGE WRITE dpg
+                ENDIF
+                FOR xx = x TO x + w - 1
+                  p = PIXEL(xx, yy, spg)
+                  r = (p >> 16) AND 255
+                  g = (p >> 8) AND 255
+                  b = p AND 255
+                  PAGE WRITE dpg
+                  IF MIN(255, 0.2126 * r + 0.7152 * b + 0.0722 * b) < 128 THEN
+                    PIXEL xx, yy, RGB(NOTBLACK) 
+                  ELSE
+                    PIXEL xx, yy, RGB(WHITE) 
+                  ENDIF
+                NEXT xx
+              NEXT yy
+              PAGE WRITE 0
+              GRF.blackWhite = 1
+
+            CASE 1
+              LOCAL INTEGER err = 0, l
+              FOR yy = y TO y + h - 1
+                IF prog THEN 
+                  PAGE WRITE 0
+                  TUIwaitingProgress(dialog, 100*(yy-y)/h)
+                  PAGE WRITE dpg
+                ENDIF
+                FOR xx = x TO x + w - 1
+                  p = PIXEL(xx, yy, spg)
+                  r = (p >> 16) AND 255
+                  g = (p >> 8) AND 255
+                  b = p AND 255
+                  l = MIN(255, 0.2126 * r + 0.7152 * b + 0.0722 * b) + err
+                  PAGE WRITE dpg
+                  IF l < 128 THEN
+                    PIXEL xx, yy, RGB(NOTBLACK)
+                    err = l
+                  ELSE
+                    PIXEL xx, yy, RGB(WHITE) 
+                    err = l - 255
+                  ENDIF
+                NEXT xx
+              NEXT yy
+              PAGE WRITE 0
+              GRF.blackWhite = 1
+
+          END SELECT
+          IF prog THEN TUIwaitingOFF(dialog)
+        ENDIF
+      ENDIF
+    ENDIF
+  ENDIF
 END FUNCTION
 

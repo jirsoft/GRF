@@ -16,6 +16,8 @@ Also can save BMP in 8- and 16-bit colors.
 
 
 
+
+
 **FUNCTION GRF.getLuma(x AS INTEGER, y AS INTEGER, pg AS INTEGER) AS INTEGER**
 * return luma of pixel(x, y, pg), 0-255
 

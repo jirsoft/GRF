@@ -1,22 +1,11 @@
 # GRF
-Graphic library for Colour Maximite 2 computer...
-
-Info and loaders for following formats:
-
-General    : JPG, GIF, PNG, BMP
-
-Atari ST   : PI1, PI2, PI3, PC1, PC2, PC3
-
-C64        : DD,HED, KOA, HBM
-
-ZX Spectrum: SCR, BSC
-
-
-Also can save BMP in 8- and 16-bit colors.
-
-
-
-
+Graphic library for Colour Maximite 2 computer...<br><br>
+Info and loaders for following formats:<br>
+General    : JPG, GIF, PNG, BMP<br>
+Atari ST   : PI1, PI2, PI3, PC1, PC2, PC3<br>
+C64        : DD,HED, KOA, HBM<br>
+ZX Spectrum: SCR, BSC<br>
+Also can save BMP in 8- and 16-bit colors.<br><br><br>
 
 **FUNCTION GRF.getLuma(x AS INTEGER, y AS INTEGER, pg AS INTEGER) AS INTEGER**
 * return luma of pixel(x, y, pg), 0-255

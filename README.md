@@ -1,5 +1,5 @@
 # GRF
-Graphic library for Colour Maximite 2 computer...<br><br>
+Graphic library for Colour Maximite 2 computer. It enables simpler use of some graphic formats<br><br>
 Info and loaders for following formats:<br>
 General    : JPG, GIF, PNG, BMP<br>
 Atari ST   : PI1, PI2, PI3, PC1, PC2, PC3<br>
